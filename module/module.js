@@ -90,13 +90,13 @@ router.post("/login", async (req, res) => {
 
             // default string
 
-            // var examplestring = "abcDE1"
+             var examplestring = "abcDE1"
 
             // Create random string in our database
 
             var _id = user._id
 
-            const user1 = await User.findByIdAndUpdate({ _id }, { $set: { random_string: x } }, { returnNewDocument: true, new: true })
+            const user1 = await User.findByIdAndUpdate({ _id }, { $set: { random_string: examplestring } }, { returnNewDocument: true, new: true })
 
             // to send mail
 
