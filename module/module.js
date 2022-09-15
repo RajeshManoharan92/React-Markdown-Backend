@@ -1,24 +1,16 @@
-const { ObjectId } = require("mongodb")
-const mongo = require("../shared")
-const express = require('express');
 const User = require("../model/user")
 const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
 require('dotenv').config()
 var nodemailer = require('nodemailer');
 var randomString = require('random-string')
-const cors = require('cors')
+const express = require('express');
 
-
-mongo.connect();
-var app = express();
-app.use(express.json());
-app.use(cors());
-
+const router = express.Router();
 
 
 // Register
-app.post("/register", async (req, res) => {
+router.post("/register", async (req, res) => {
 
     // Our register logic starts here
     try {
@@ -64,7 +56,7 @@ app.post("/register", async (req, res) => {
 
 
 // Login
-app.post("/login", async (req, res) => {
+router.post("/login", async (req, res) => {
 
     // Our login logic starts here
     try {
@@ -89,10 +81,50 @@ app.post("/login", async (req, res) => {
             );
 
             // save user token
+
             user.token = token;
 
+            // verification mail
+
+            var x = randomString();
+
+            // default string
+
+            // var examplestring = "abcDE1"
+
+            // Create random string in our database
+
+            var _id = user._id
+
+            const user1 = await User.findByIdAndUpdate({ _id }, { $set: { random_string: x } }, { returnNewDocument: true, new: true })
+
+            // to send mail
+
+            var transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: 'm.rajeshmanohar@gmail.com',
+                    pass: 'hpyzqgqjtzjrzzyz'
+                }
+            });
+
+            var mailOptions = {
+                from: 'm.rajeshmanohar@gmail.com',
+                to: 'm.rajeshmanohar@gmail.com',
+                subject: 'Sending Email using Node.js',
+                html: `<h1>Enter this OTP : ${x}</h1>`
+            };
+
+            transporter.sendMail(mailOptions, function (error, info) {
+                if (error) {
+                    console.log(error);
+                } else {
+                    console.log('Email sent: ' + info.response);
+                }
+            });
+
             // user
-            return res.send('Loggedin');
+            return res.status(200).json({ user, message: "Loggedin" });
         }
         return res.send('Invalid');
 
@@ -104,135 +136,46 @@ app.post("/login", async (req, res) => {
 });
 
 
-// forgot password
+// OTP
+router.post("/otp", async (req, res) => {
 
-app.post("/forgotpass", async function (req, res) {
+    // Our login logic starts here
     try {
-        const { email } = req.body;
+        // Get user input
+        const { email, OTP } = req.body;
 
-        const NoUser = await User.findOne({ email });
 
-        if (!NoUser) {
-            return res.send({ message: 'Sorry Email does not Exist!' });
+        // Validate if user exist in our database
+        const user = await User.findOne({ email });
+
+        if (OTP === user.random_string) {
+            // Create token
+            const token = jwt.sign(
+                { user_id: user._id, email },
+                process.env.TOKEN_KEY,
+                {
+                    expiresIn: "5h",
+                }
+            );
+
+            // save user token
+            user.token = token;
+
+            // user
+            return res.status(200).json({ user, message: "Loggedin" });
         }
+        return res.send('Invalid');
 
-        var x = randomString();
-
-        // Create random string in our database
-        var _id = NoUser._id
-
-
-        const user1 = await User.findByIdAndUpdate({ _id }, { $set: { random_string: x } }, { returnNewDocument: true, new: true })
-
-        // Create token
-        const token = jwt.sign(
-            { user_id: user1._id, email },
-            process.env.TOKEN_KEY,
-            {
-                expiresIn: "1h",
-            }
-        );
-
-        // save user token
-        user1.token = token;
-
-        var transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: 'youremail@gmail.com',
-                pass: 'yourpassword'
-            }
-        });
-
-        var mailOptions = {
-            from: 'youremail@gmail.com',
-            to: 'myfriend@yahoo.com',
-            subject: 'Sending Email using Node.js',
-            html: '<h1>Click the link to reset your password</h1><a href="http://localhost:3000/setnewpassword">Reset Your Password with in one hour</a>'
-        };
-
-        transporter.sendMail(mailOptions, function (error, info) {
-            if (error) {
-                console.log(error);
-            } else {
-                console.log('Email sent: ' + info.response);
-            }
-        });
-        res.send("mail_sent")
+        // Our login logic ends here
     }
     catch (err) {
         console.log(err)
     }
-
 });
-
-
-// verification mail
-
-app.post("/verification", async function (req, res) {
-    try {
-        const { email } = req.body;
-
-        const NoUser = await User.findOne({ email });
-
-        if (!NoUser) {
-            return res.send({ message: 'Sorry Email does not Exist!' });
-        }
-
-        var x = randomString();
-
-        // Create random string in our database
-        var _id = NoUser._id
-
-
-        const user1 = await User.findByIdAndUpdate({ _id }, { $set: { random_string: x } }, { returnNewDocument: true, new: true })
-
-        // Create token
-        const token = jwt.sign(
-            { user_id: user1._id, email },
-            process.env.TOKEN_KEY,
-            {
-                expiresIn: "1h",
-            }
-        );
-
-        // save user token
-        user1.token = token;
-
-        var transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: 'youremail@gmail.com',
-                pass: 'yourpassword'
-            }
-        });
-
-        var mailOptions = {
-            from: 'youremail@gmail.com',
-            to: 'myfriend@yahoo.com',
-            subject: 'Sending Email using Node.js',
-            html: '<h1>Click the link to reset your password</h1><a href="http://localhost:3000/setnewpassword">Reset Your Password with in one hour</a>'
-        };
-
-        transporter.sendMail(mailOptions, function (error, info) {
-            if (error) {
-                console.log(error);
-            } else {
-                console.log('Email sent: ' + info.response);
-            }
-        });
-        res.send("mail_sent")
-    }
-    catch (err) {
-        console.log(err)
-    }
-
-});
-
 
 // set new password 
 
-app.post("/setnewpassword", async function (req, res) {
+router.post("/setnewpassword", async function (req, res) {
     try {
         const { email, password } = req.body;
 
@@ -257,24 +200,23 @@ app.post("/setnewpassword", async function (req, res) {
 
 // to get registered user name
 
-app.get("/getusersname", async function (req, res) {
-try{
+router.get("/getusersname", async function (req, res) {
+    try {
 
-const name = await User.aggregate([
-   {
-        $project: {
-            first_name:1,
-            last_name:1
-        }
+        const name = await User.aggregate([
+            {
+                $project: {
+                    first_name: 1,
+                    last_name: 1
+                }
+            }
+        ])
+        res.send(name)
+
     }
-])
-res.send(name)
-
-}
-catch(err){
-    console.log(err)
-
-}
+    catch (err) {
+        console.log(err)
+    }
 })
 
-module.exports = app;
+module.exports = router;

@@ -1,9 +1,21 @@
+const mongo = require("./shared")
+const express = require('express');
+require('dotenv').config()
+const cors = require('cors')
+const router = require("./module/module")
 
-const http = require("http");
-const app = require("./module/module");
-const server = http.createServer(app)
 
+mongo.connect();
 
-server.listen(process.env.PORT||3002, () => {
-    console.log(`Server running on port ${3002}`);
-  });
+var app = express();
+
+app.use(express.json());
+
+app.use(cors());
+
+app.use("/",router)
+
+app.listen(process.env.PORT||3001, () => {
+  console.log(`Server running on port ${3001}`);
+})
+

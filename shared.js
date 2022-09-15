@@ -11,8 +11,7 @@ module.exports = {
             const response = await Mongoose.connect(process.env.Mongo_URL).then(()=>{
                 console.log("database connected successfully")
             })
-           
-           
+ 
         }
         catch (err) {
             console.log(err)
